@@ -2,7 +2,7 @@
 require 'init.php';
 
 $models = Model::fetchAll();
-$props = Prop::fetchAll();
+$props = Prop::fetchByIds([3,5,6,8,9,15,16,17,18,33,36,39,58,59,66,53]);
 
 ?>
 
