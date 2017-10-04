@@ -10,26 +10,39 @@ abstract class AR
     }
 
     /**
-     * @param string $index
-     * @param string $value
-     * @return string[]|static[]
+     * @param string $col
+     * @param QueryCriteria $criteria
+     * @return array
      */
-    public static function fetchAll($index = 'id', $value = null)
+    public static function queryColumn(string $col, QueryCriteria $criteria = null)
     {
-        $props = pg_query(APP::DB(), 'select * from ' . static::table());
-        $result = [];
-        while ($prop = pg_fetch_object($props, null, static::class)) {
-            $result[$prop->$index] = $value ? $prop->$value : $prop;
-        }
-        return $result;
+        return static::query($criteria, function ($object) use ($col) {
+            return $object->$col;
+        });
     }
 
-    public static function fetchByIds(array $ids, string $pk = 'id')
+    /**
+     * @param QueryCriteria|null $criteria
+     * @param callable|null      $callback
+     * @return static[]
+     */
+    public static function query(QueryCriteria $criteria = null, callable $callback = null)
     {
-        $props = pg_query(APP::DB(), 'select * from ' . static::table() . " where $pk in (" . implode(',', $ids) . ')');
+        if (!$criteria) {
+            $criteria = new QueryCriteria;
+        }
+        $objects = pg_query_params(APP::DB(), 'select ' . $criteria->getSelect() . ' from ' . static::table() . (($where = $criteria->getWhere()) ? " where $where" : ''), $criteria->getParams());
         $result = [];
-        while ($prop = pg_fetch_object($props, null, static::class)) {
-            $result[$prop->$pk] = $prop;
+        while ($object = pg_fetch_object($objects, null, static::class)) {
+            $value = $object;
+            if ($callback) {
+                $value = $callback($object);
+            }
+            if ($index = $criteria->getIndex()) {
+                $result[$object->$index] = $value;
+            } else {
+                $result[] = $value;
+            }
         }
         return $result;
     }

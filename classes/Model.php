@@ -5,8 +5,11 @@ class Model extends AR
     public $id;
     public $name;
     public $descr;
-    public $url_mvideo;
-    private $props;
+    public $url;
+    public $origin;
+    public $diameter;
+    public $dinamics;
+    public $connector;
 
     public static function table():string {
         return 'models';
@@ -17,10 +20,20 @@ class Model extends AR
     }
 
     public function getPropById(int $id) {
-        if (!$this->props) {
-            $this->props = $this->getProps();
+        static $props;
+        if (!isset($props)) {
+            $props = $this->getProps();
         }
-        return $this->props[$id] ?? null;
+        return $props[$id] ?? null;
+    }
+
+    public function getUrl():string
+    {
+        static $origin;
+        if (!$origin) {
+            $origin = new Origin($this->origin);
+        }
+        return $origin->generateUrl($this->url);
     }
 
 }

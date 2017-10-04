@@ -6,6 +6,7 @@ class Prop extends AR {
 
     public $id;
     public $name;
+    public $origin;
 
     public static function table(): string
     {
@@ -15,7 +16,7 @@ class Prop extends AR {
     public static function getCached(int $id) {
         static $cache;
         if (!$cache) {
-            $cache = static::fetchAll();
+            $cache = static::query(QueryCriteria::create()->setIndex('id'));
         }
         return $cache[$id] ?? null;
     }
