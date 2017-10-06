@@ -2,10 +2,14 @@
 
 class Parser
 {
-    public $origin;
+    public    $origin;
     protected $map = [];
     protected $namePattern;
     protected $descrPattern;
+    protected $charset;
+    protected $url = '';
+    protected $delayMin = 1;
+    protected $delayMax = 4;
 
     public function __construct(Origin $origin)
     {
@@ -18,10 +22,15 @@ class Parser
         return $this;
     }
 
+    public function setCharset(string $charset)
+    {
+        $this->charset = $charset;
+    }
+
     public function parse(string $parsePattern)
     {
         $models = pg_query_params(APP::DB(), 'select * from models WHERE origin = $1', [$this->origin->code]);
-        $fieldsIndexed = Prop::queryColumn('id', QueryCriteria::create()->setIndex('name')->addParam('origin', $this->origin->code));
+        $fieldsIndexed = Prop::queryColumn('id', QueryCriteria::create()->index('name')->param('origin', $this->origin->code));
         $fieldsIndex = $fieldsIndexed ? max($fieldsIndexed) : 0;
 
         $counter = 0;
@@ -29,7 +38,7 @@ class Parser
         while ($model = pg_fetch_object($models, null, Model::class)) {
             echo ($counter++) . ' Requesting.. ' . $model->url . PHP_EOL;
             $changed = false;
-            $curl = curl_init($this->origin->generateUrl($model->url));
+            $curl = curl_init($this->origin->generateUrl($model->url) . $this->url);
             $header = [
                 'Accept'           => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
                 'Accept-Encoding'  => 'gzip, deflate',
@@ -43,21 +52,25 @@ class Parser
             curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
-            $html = $this->origin->convert(curl_exec($curl));
-            preg_match($this->descrPattern, $html, $descr);
-            if (!empty($descr)) {
-                $descr = $descr[1];
-                if ($descr != $model->descr) {
-                    $model->descr = $descr;
-                    $changed = true;
+            $html = $this->convert(curl_exec($curl));
+            if ($this->descrPattern) {
+                preg_match($this->descrPattern, $html, $descr);
+                if (!empty($descr)) {
+                    $descr = $descr[1];
+                    if ($descr != $model->descr) {
+                        $model->descr = $descr;
+                        $changed      = true;
+                    }
                 }
             }
-            preg_match($this->namePattern, $html, $name);
-            if (!empty($name)) {
-                $name = $name[1];
-                if ($name != $model->name) {
-                    $model->name = $name;
-                    $changed = true;
+            if ($this->namePattern) {
+                preg_match($this->namePattern, $html, $name);
+                if (!empty($name)) {
+                    $name = trim($name[1]);
+                    if ($name != $model->name) {
+                        $model->name = $name;
+                        $changed     = true;
+                    }
                 }
             }
             preg_match_all($parsePattern, $html, $props, PREG_SET_ORDER);
@@ -82,7 +95,7 @@ class Parser
                 $model->save();
             }
             curl_close($curl);
-            sleep(rand(1,4));
+            sleep(rand($this->delayMin,$this->delayMax));
         }
     }
 
@@ -92,10 +105,29 @@ class Parser
         return $this;
     }
 
+    public function setDelay($min, $max)
+    {
+        $this->delayMax = $max;
+        $this->delayMin = $min;
+    }
+
     public function setDescrPattern($descrPattern)
     {
         $this->descrPattern = $descrPattern;
         return $this;
+    }
+
+    public function convert(string $string)
+    {
+        return $this->charset ? mb_convert_encoding($string, 'utf-8', $this->charset) : $string;
+    }
+
+    /**
+     * @param mixed $url
+     */
+    public function setUrl($url)
+    {
+        $this->url = $url;
     }
 
 }

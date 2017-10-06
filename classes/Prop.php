@@ -16,7 +16,7 @@ class Prop extends AR {
     public static function getCached(int $id) {
         static $cache;
         if (!$cache) {
-            $cache = static::query(QueryCriteria::create()->setIndex('id'));
+            $cache = static::query(QueryCriteria::create()->index('id'));
         }
         return $cache[$id] ?? null;
     }

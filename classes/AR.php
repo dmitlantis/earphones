@@ -31,7 +31,8 @@ abstract class AR
         if (!$criteria) {
             $criteria = new QueryCriteria;
         }
-        $objects = pg_query_params(APP::DB(), 'select ' . $criteria->getSelect() . ' from ' . static::table() . (($where = $criteria->getWhere()) ? " where $where" : ''), $criteria->getParams());
+        $params  = [];
+        $objects = pg_query_params(APP::DB(), 'select ' . $criteria->getSelect() . ' from ' . static::table() . (($where = $criteria->getWhere($params)) ? " where $where" : ''), $params);
         $result = [];
         while ($object = pg_fetch_object($objects, null, static::class)) {
             $value = $object;

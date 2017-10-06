@@ -2,19 +2,14 @@
 
 class Origin
 {
+    const OZON = 'ozon';
+    const MVIDEO = 'mvideo';
+
     public $code;
 
     const HOSTS = [
-        'mvideo' => 'www.mvideo.ru',
-        'ozon'   => 'www.ozon.ru',
-    ];
-
-    const URLS = [
-        'mvideo' => '/specification?ssb_block=descriptionTabContentBlock',
-    ];
-
-    const CHARSET = [
-        'ozon' => 'windows-1251',
+        self::MVIDEO => 'www.mvideo.ru',
+        self::OZON   => 'www.ozon.ru',
     ];
 
     public function __construct(string $code)
@@ -24,24 +19,32 @@ class Origin
 
     public function generateUrl(string $url = ''):string
     {
-        return $this->getHttp(). $url . (static::URLS[$this->code] ?? '');
+        return static::generateUrlOfCode($this->code, $url);
+    }
+
+    public static function generateUrlOfCode(string $code, string $url = '')
+    {
+        return static::getHttpOfCode($code) . $url;
     }
 
     public function getHost()
     {
-        return static::HOSTS[$this->code];
+        return static::getHostOfCode($this->code);
+    }
+
+    public static function getHostOfCode(string $code)
+    {
+        return static::HOSTS[$code];
     }
 
     public function getHttp()
     {
-        return 'http://' . $this->getHost() . '/';
+        return static::getHttpOfCode($this->code);
     }
 
-    public function convert(string $string)
+    public static function getHttpOfCode(string $code)
     {
-        return isset(static::CHARSET[$this->code]) ? mb_convert_encoding($string, 'utf-8', static::CHARSET[$this->code]) : $string;
+        return 'http://' . static::getHostOfCode($code);
     }
-
-
 
 }

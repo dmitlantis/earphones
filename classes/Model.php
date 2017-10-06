@@ -30,11 +30,7 @@ class Model extends AR
 
     public function getUrl():string
     {
-        static $origin;
-        if (!$origin) {
-            $origin = new Origin($this->origin);
-        }
-        return $origin->generateUrl($this->url);
+        return Origin::generateUrlOfCode($this->origin, $this->url);
     }
 
 }

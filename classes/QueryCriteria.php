@@ -6,47 +6,68 @@ class QueryCriteria
     protected $index;
     protected $where = [];
     protected $select = [];
-    protected $params = [];
 
-    public static function create():self
+    const MERGE_MODE_AND = 'AND';
+    const MERGE_MODE_OR  = 'OR';
+
+    protected $mergeMode = 'and';
+
+    public function __construct(string $mergeMode = self::MERGE_MODE_AND)
     {
-        return new static;
+        $this->mergeMode = $mergeMode;
     }
 
-    public function setSelect(array $select)
+    public static function create(string $mergeMode = self::MERGE_MODE_AND):self
+    {
+        return new static($mergeMode);
+    }
+
+    public function select(array $select)
     {
         $this->select = $select;
         return $this;
     }
 
-    public function setIndex(string $index)
+    public function index(string $index)
     {
         $this->index = $index;
         return $this;
     }
 
-    public function addWhere($where)
+    /**
+     * @param array|string|self $where
+     * @return $this
+     */
+    public function where($where)
     {
         $this->where[] = $where;
         return $this;
     }
 
-    public function addParam(string $attribute, $value, $operator = '=')
+    public function param(string $attribute, $value, $operator = '=')
     {
-        $this->params[] = $value;
-        $this->where[] = "$attribute $operator" . '$' . count($this->params);
+        $this->where[] = ["$attribute $operator", $value];
         return $this;
     }
 
-    public function addInCondition(string $attribute, array $values)
+    public function IN(string $attribute, array $values)
     {
-        return $this->addWhere("$attribute in (" . implode(',', $values) . ')');
+        return $this->where("$attribute in (" . implode(',', $values) . ')');
     }
 
-    public function addLikeCondition(string $attribute, string $like, bool $caseInsensitive = true)
+    public function like(string $attribute, string $like, bool $caseInsensitive = true)
     {
-        $this->params[] = $like;
-        return $this->addWhere($attribute . '~~' . ($caseInsensitive ? '*' : '') . ' $' . count($this->params));
+        return $this->where([$attribute . '~~' . ($caseInsensitive ? '*' : '') . ' ', $like]);
+    }
+
+    public function regexp(string $attribute, string $regexp, bool $caseInsensitive = true)
+    {
+        return $this->where([$attribute . '~' . ($caseInsensitive ? '*' : ''), $regexp]);
+    }
+
+    public function isNull(string $attribute)
+    {
+        return $this->where("$attribute is null");
     }
 
 
@@ -55,9 +76,37 @@ class QueryCriteria
         return empty($this->select) ? '*' : implode(',', $this->select);
     }
 
-    public function getWhere()
+    public function getWhere(&$params = []):string
     {
-        return implode(' and ' , $this->where);
+        if (empty($this->where)) {
+            return '';
+        }
+        $where = [];
+
+        foreach ($this->where as $part) {
+            if (is_array($part)) {
+                $wherePart = '';
+                foreach ($part as $key => $value) {
+                    if ($key % 2 == 0) {
+                        $wherePart .= $value;
+                    } else {
+                        $params[] = $value;
+                        $wherePart .= ' $' . count($params) . ' ';
+                    }
+                }
+                $where[] = $wherePart;
+            } elseif(is_object($part) && $part instanceof self) {
+                $where[] = '(' . $part->getWhere($params) . ')';
+            } else {
+                $where[] = $part;
+            }
+        }
+        return implode(" $this->mergeMode ", $where);
+    }
+
+    public function getWhereRaw():array
+    {
+        return $this->where;
     }
 
     /**
@@ -68,14 +117,9 @@ class QueryCriteria
         return $this->index;
     }
 
-    public function getParams()
-    {
-        return $this->params;
-    }
-
     public function addNotInCondition(string $attribute, array $values)
     {
-        return $this->addWhere("not $attribute in (" . implode(',', $values) . ')');
+        return $this->where("not $attribute in (" . implode(',', $values) . ')');
     }
 
 }
