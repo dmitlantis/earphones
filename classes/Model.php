@@ -11,6 +11,8 @@ class Model extends AR
     public $dinamics;
     public $connector;
 
+    protected $_props;
+
     public static function table():string {
         return 'models';
     }
@@ -20,11 +22,10 @@ class Model extends AR
     }
 
     public function getPropById(int $id) {
-        static $props;
-        if (!isset($props)) {
-            $props = $this->getProps();
+        if (!isset($this->_props)) {
+            $this->_props = $this->getProps();
         }
-        return $props[$id] ?? null;
+        return $this->_props[$id] ?? null;
     }
 
     public function getUrl():string

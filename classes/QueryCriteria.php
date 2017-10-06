@@ -43,10 +43,10 @@ class QueryCriteria
         return $this->addWhere("$attribute in (" . implode(',', $values) . ')');
     }
 
-    public function addLikeCondition(string $attribute, string $like)
+    public function addLikeCondition(string $attribute, string $like, bool $caseInsensitive = true)
     {
         $this->params[] = $like;
-        return $this->addWhere($attribute . '~~ $' . count($this->params));
+        return $this->addWhere($attribute . '~~' . ($caseInsensitive ? '*' : '') . ' $' . count($this->params));
     }
 
 

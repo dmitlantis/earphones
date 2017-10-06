@@ -49,6 +49,6 @@ abstract class AR
 
     public function save()
     {
-        pg_update(APP::DB(), static::table(), get_object_vars($this), $this->PK());
+        pg_update(APP::DB(), static::table(), array_filter(get_object_vars($this), function($prop) { return $prop[0] != '_'; }, ARRAY_FILTER_USE_KEY), $this->PK());
     }
 }
