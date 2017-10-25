@@ -4,12 +4,14 @@ class Origin
 {
     const OZON = 'ozon';
     const MVIDEO = 'mvideo';
+    const OGO = 'ogo';
 
     public $code;
 
     const HOSTS = [
         self::MVIDEO => 'www.mvideo.ru',
         self::OZON   => 'www.ozon.ru',
+        self::OGO   => 'www.ogo1.ru',
     ];
 
     public function __construct(string $code)

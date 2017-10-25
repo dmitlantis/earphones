@@ -32,7 +32,14 @@ abstract class AR
             $criteria = new QueryCriteria;
         }
         $params  = [];
-        $objects = pg_query_params(APP::DB(), 'select ' . $criteria->getSelect() . ' from ' . static::table() . (($where = $criteria->getWhere($params)) ? " where $where" : ''), $params);
+        $objects = pg_query_params(APP::DB(),
+            'select ' .
+            $criteria->getSelect() .
+            ' from ' .
+            static::table() .
+            static::queryPart($criteria->getWhere($params), 'where') .
+            static::queryPart($criteria->getSort(), 'order by')
+        , $params);
         $result = [];
         while ($object = pg_fetch_object($objects, null, static::class)) {
             $value = $object;
@@ -46,6 +53,14 @@ abstract class AR
             }
         }
         return $result;
+    }
+
+    protected static function queryPart(string $result, string $prefix):string
+    {
+        if ($result) {
+            return " $prefix $result";
+        }
+        return '';
     }
 
     public function save()

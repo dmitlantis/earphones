@@ -6,6 +6,7 @@ class QueryCriteria
     protected $index;
     protected $where = [];
     protected $select = [];
+    protected $sort = [];
 
     const MERGE_MODE_AND = 'AND';
     const MERGE_MODE_OR  = 'OR';
@@ -70,6 +71,12 @@ class QueryCriteria
         return $this->where("$attribute is null");
     }
 
+    public function sort(string $fieldName, $asc = true)
+    {
+        $this->sort[] = $fieldName . ($asc ? ' asc' : ' desc');
+        return $this;
+    }
+
 
     public function getSelect()
     {
@@ -102,6 +109,11 @@ class QueryCriteria
             }
         }
         return implode(" $this->mergeMode ", $where);
+    }
+
+    public function getSort():string
+    {
+        return implode(',', $this->sort);
     }
 
     public function getWhereRaw():array
